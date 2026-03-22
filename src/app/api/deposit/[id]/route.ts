@@ -62,17 +62,44 @@ export async function PATCH(
       const totalAdd = depositAmount + bonusAmount;
       const newBalance = currentBalance + totalAdd;
 
-      // Update member balance
-      const { error: balanceError } = await supabaseAdmin
-        .from("members")
-        .update({ balance: newBalance })
-        .eq("id", depositReq.member_id)
-        .eq("balance", currentBalance); // Optimistic lock: only update if balance hasn't changed
+      // Update member balance with retry on optimistic lock failure
+      let balanceUpdated = false;
+      let retryBalance = currentBalance;
+      let retryNewBalance = newBalance;
 
-      if (balanceError) {
+      for (let attempt = 0; attempt < 3; attempt++) {
+        const { data: updated, error: balanceError } = await supabaseAdmin
+          .from("members")
+          .update({ balance: retryNewBalance })
+          .eq("id", depositReq.member_id)
+          .eq("balance", retryBalance)
+          .select("id")
+          .single();
+
+        if (!balanceError && updated) {
+          balanceUpdated = true;
+          currentBalance = retryBalance;
+          newBalance = retryNewBalance;
+          break;
+        }
+
+        // Re-fetch balance and retry
+        const { data: fresh } = await supabaseAdmin
+          .from("members")
+          .select("balance")
+          .eq("id", depositReq.member_id)
+          .single();
+
+        if (fresh) {
+          retryBalance = Number(fresh.balance) || 0;
+          retryNewBalance = retryBalance + totalAdd;
+        }
+      }
+
+      if (!balanceUpdated) {
         return NextResponse.json(
           { error: "잔고 업데이트에 실패했습니다. 다시 시도해주세요." },
-          { status: 500 }
+          { status: 409 }
         );
       }
 

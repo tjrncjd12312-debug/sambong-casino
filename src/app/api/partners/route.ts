@@ -55,12 +55,28 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "이미 사용 중인 접속ID입니다." }, { status: 409 });
     }
 
-    // 상부 파트너 롤링/루징 초과 검증
+    // 상부 파트너 존재 및 레벨 검증
     const { data: parent } = await supabaseAdmin
       .from("partners")
-      .select("slot_rolling_pct, casino_rolling_pct, slot_losing_pct, casino_losing_pct")
+      .select("id, level, slot_rolling_pct, casino_rolling_pct, slot_losing_pct, casino_losing_pct")
       .eq("id", parent_id)
       .single();
+
+    if (!parent) {
+      return NextResponse.json({ error: "상부 파트너를 찾을 수 없습니다." }, { status: 404 });
+    }
+
+    // 레벨 계층 검증
+    const levelHierarchy: Record<string, string[]> = {
+      admin: ["head"],
+      head: ["sub_head"],
+      sub_head: ["distributor"],
+      distributor: ["store"],
+    };
+    const allowedChildren = levelHierarchy[parent.level] || [];
+    if (!allowedChildren.includes(level)) {
+      return NextResponse.json({ error: `${parent.level} 하위에 ${level}을(를) 생성할 수 없습니다.` }, { status: 400 });
+    }
 
     if (parent) {
       const checks = [

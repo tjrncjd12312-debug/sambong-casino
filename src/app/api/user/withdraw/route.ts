@@ -138,14 +138,16 @@ export async function POST(request: NextRequest) {
 
     // 환전 신청 시 즉시 잔액 차감 (홀드)
     const newBalance = currentBalance - requestAmount;
-    const { error: balanceError } = await supabaseAdmin
+    const { data: balanceUpdated, error: balanceError } = await supabaseAdmin
       .from("members")
       .update({ balance: newBalance })
       .eq("id", payload.id)
-      .eq("balance", currentBalance); // optimistic lock
+      .eq("balance", currentBalance) // optimistic lock
+      .select("id")
+      .single();
 
-    if (balanceError) {
-      return NextResponse.json({ error: "잔액 처리에 실패했습니다. 다시 시도해주세요." }, { status: 500 });
+    if (balanceError || !balanceUpdated) {
+      return NextResponse.json({ error: "잔액이 변경되었습니다. 다시 시도해주세요." }, { status: 409 });
     }
 
     const { data, error } = await supabaseAdmin
@@ -163,8 +165,8 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (error) {
-      // 롤백
-      await supabaseAdmin.from("members").update({ balance: currentBalance }).eq("id", payload.id);
+      // 롤백 - optimistic lock으로 안전하게
+      await supabaseAdmin.from("members").update({ balance: currentBalance }).eq("id", payload.id).eq("balance", newBalance);
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 

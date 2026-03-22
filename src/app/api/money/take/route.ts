@@ -59,17 +59,45 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const balanceAfter = balanceBefore - numAmount;
+    let finalBefore = balanceBefore;
+    let finalAfter = balanceBefore - numAmount;
+    let lockSuccess = false;
 
-    const { data: updated, error: updateErr } = await supabaseAdmin
-      .from(table)
-      .update({ balance: balanceAfter })
-      .eq("id", target_id)
-      .eq("balance", balanceBefore)
-      .select("id, balance")
-      .single();
+    for (let attempt = 0; attempt < 3; attempt++) {
+      if (finalBefore < numAmount) {
+        return NextResponse.json(
+          { error: `잔액이 부족합니다. 현재 잔액: ${finalBefore.toLocaleString()}` },
+          { status: 400 }
+        );
+      }
 
-    if (updateErr || !updated) {
+      const { data: updated, error: updateErr } = await supabaseAdmin
+        .from(table)
+        .update({ balance: finalAfter })
+        .eq("id", target_id)
+        .eq("balance", finalBefore)
+        .select("id, balance")
+        .single();
+
+      if (!updateErr && updated) {
+        lockSuccess = true;
+        break;
+      }
+
+      // Re-fetch and retry
+      const { data: fresh } = await supabaseAdmin
+        .from(table)
+        .select("balance")
+        .eq("id", target_id)
+        .single();
+
+      if (fresh) {
+        finalBefore = Number(fresh.balance);
+        finalAfter = finalBefore - numAmount;
+      }
+    }
+
+    if (!lockSuccess) {
       return NextResponse.json(
         { error: "잔액이 변경되었습니다. 다시 시도해주세요." },
         { status: 409 }
@@ -81,8 +109,8 @@ export async function POST(request: NextRequest) {
       amount: numAmount,
       processed_by: ADMIN_ID,
       memo: memo || null,
-      from_balance_before: balanceBefore,
-      from_balance_after: balanceAfter,
+      from_balance_before: finalBefore,
+      from_balance_after: finalAfter,
     };
 
     if (target_type === "member") {
@@ -98,7 +126,7 @@ export async function POST(request: NextRequest) {
       .insert(transferData);
 
     if (transferErr) {
-      await supabaseAdmin.from(table).update({ balance: balanceBefore }).eq("id", target_id);
+      await supabaseAdmin.from(table).update({ balance: finalBefore }).eq("id", target_id).eq("balance", finalAfter);
       return NextResponse.json({ error: "이체 기록 생성 실패" }, { status: 500 });
     }
 
@@ -120,8 +148,8 @@ export async function POST(request: NextRequest) {
         target_id,
         target_name: target.nickname || target.username,
         amount: numAmount,
-        balance_before: balanceBefore,
-        balance_after: balanceAfter,
+        balance_before: finalBefore,
+        balance_after: finalAfter,
         in_game: isInGame,
       },
     });

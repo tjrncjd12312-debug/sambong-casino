@@ -341,12 +341,12 @@ async function handlePartnerStats(
 
   const { data: members } = await supabaseAdmin
     .from("members")
-    .select("username, partner_id");
+    .select("username, store_id");
 
   const memberPartnerObj: Record<string, string> = {};
   if (members) {
     for (const m of members) {
-      if (m.partner_id) memberPartnerObj[m.username] = m.partner_id;
+      if (m.store_id) memberPartnerObj[m.username] = m.store_id;
     }
   }
 
@@ -420,13 +420,13 @@ async function handlePartnerStats(
   const [depositWithMemberRes, withdrawWithMemberRes] = await Promise.all([
     supabaseAdmin
       .from("deposit_requests")
-      .select("amount, member_id, members!inner(username, partner_id)")
+      .select("amount, member_id, members!inner(username, store_id)")
       .eq("status", "approved")
       .gte("created_at", startDatetime)
       .lte("created_at", endDatetime),
     supabaseAdmin
       .from("withdraw_requests")
-      .select("amount, member_id, members!inner(username, partner_id)")
+      .select("amount, member_id, members!inner(username, store_id)")
       .eq("status", "approved")
       .gte("created_at", startDatetime)
       .lte("created_at", endDatetime),
@@ -434,7 +434,7 @@ async function handlePartnerStats(
 
   for (const dep of (depositWithMemberRes.data || [])) {
     const memberData = dep.members as any;
-    const partnerId = memberData?.partner_id;
+    const partnerId = memberData?.store_id;
     if (partnerId) {
       for (let i = 0; i < partnerIds.length; i++) {
         const pid = partnerIds[i];
@@ -449,7 +449,7 @@ async function handlePartnerStats(
 
   for (const wd of (withdrawWithMemberRes.data || [])) {
     const memberData = wd.members as any;
-    const partnerId = memberData?.partner_id;
+    const partnerId = memberData?.store_id;
     if (partnerId) {
       for (let i = 0; i < partnerIds.length; i++) {
         const pid = partnerIds[i];

@@ -56,16 +56,39 @@ export async function POST(request: NextRequest) {
 
     const balanceAfter = balanceBefore + numAmount;
 
-    // Optimistic locking: update only if balance hasn't changed
-    const { data: updated, error: updateErr } = await supabaseAdmin
-      .from(table)
-      .update({ balance: balanceAfter })
-      .eq("id", target_id)
-      .eq("balance", balanceBefore)
-      .select("id, balance")
-      .single();
+    // Optimistic locking with retry
+    let lockSuccess = false;
+    let finalBefore = balanceBefore;
+    let finalAfter = balanceAfter;
 
-    if (updateErr || !updated) {
+    for (let attempt = 0; attempt < 3; attempt++) {
+      const { data: updated, error: updateErr } = await supabaseAdmin
+        .from(table)
+        .update({ balance: finalAfter })
+        .eq("id", target_id)
+        .eq("balance", finalBefore)
+        .select("id, balance")
+        .single();
+
+      if (!updateErr && updated) {
+        lockSuccess = true;
+        break;
+      }
+
+      // Re-fetch and retry
+      const { data: fresh } = await supabaseAdmin
+        .from(table)
+        .select("balance")
+        .eq("id", target_id)
+        .single();
+
+      if (fresh) {
+        finalBefore = Number(fresh.balance);
+        finalAfter = finalBefore + numAmount;
+      }
+    }
+
+    if (!lockSuccess) {
       return NextResponse.json(
         { error: "잔액이 변경되었습니다. 다시 시도해주세요." },
         { status: 409 }
@@ -78,8 +101,8 @@ export async function POST(request: NextRequest) {
       amount: numAmount,
       processed_by: ADMIN_ID,
       memo: memo || null,
-      to_balance_before: balanceBefore,
-      to_balance_after: balanceAfter,
+      to_balance_before: finalBefore,
+      to_balance_after: finalAfter,
     };
 
     if (target_type === "member") {
@@ -102,8 +125,9 @@ export async function POST(request: NextRequest) {
       // Rollback balance
       await supabaseAdmin
         .from(table)
-        .update({ balance: balanceBefore })
-        .eq("id", target_id);
+        .update({ balance: finalBefore })
+        .eq("id", target_id)
+        .eq("balance", finalAfter);
 
       return NextResponse.json(
         { error: "이체 기록 생성 실패: " + transferErr.message },
@@ -126,8 +150,8 @@ export async function POST(request: NextRequest) {
         target_id,
         target_name: target.nickname || target.username,
         amount: numAmount,
-        balance_before: balanceBefore,
-        balance_after: balanceAfter,
+        balance_before: finalBefore,
+        balance_after: finalAfter,
         in_game: isInGame,
       },
     });

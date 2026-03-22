@@ -51,14 +51,14 @@ export async function POST(request: NextRequest) {
 
       // 차이가 있으면 기록 (배팅으로 인한 변동)
       if (hlAmount !== dbBefore) {
+        const isProfit = hlAmount > dbBefore;
         await supabaseAdmin.from("money_transfers").insert({
-          transfer_type: hlAmount > dbBefore ? "member_deposit" : "member_withdraw",
+          transfer_type: "game_settlement",
           amount: Math.abs(hlAmount - dbBefore),
-          to_member_id: hlAmount > dbBefore ? member.id : undefined,
-          from_member_id: hlAmount < dbBefore ? member.id : undefined,
+          to_member_id: member.id,
           to_balance_before: dbBefore,
           to_balance_after: hlAmount,
-          memo: `게임 종료 정산 (${dbBefore > hlAmount ? "손실" : "수익"}: ${Math.abs(hlAmount - dbBefore).toLocaleString()})`,
+          memo: `게임 종료 정산 (${isProfit ? "수익" : "손실"}: ${Math.abs(hlAmount - dbBefore).toLocaleString()})`,
         });
       }
     }
