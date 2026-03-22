@@ -1,4 +1,5 @@
 node_modules/
+.next/
 .env
 .env.local
 dist/
@@ -6,3 +7,5 @@ build/
 *.log
 .DS_Store
 Thumbs.db
+tx_test.json
+tx_test2.json

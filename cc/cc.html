@@ -1,0 +1,1038 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CC CASINO</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&display=swap');
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Noto Sans KR', sans-serif;
+            background-color: #111111;
+            color: #ffffff;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1300px;
+            margin: 0 auto;
+            padding: 0 15px;
+        }
+
+        a {
+            text-decoration: none;
+            color: inherit;
+        }
+
+        /* ==================== TOP BAR ==================== */
+        .top-bar {
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+            padding: 5px calc((100% - 1300px) / 2);
+            gap: 10px;
+            background: #111;
+        }
+
+        .top-btn {
+            padding: 6px 18px;
+            border-radius: 5px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            border: none;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .top-btn:hover {
+            transform: translateY(-1px);
+        }
+
+        .btn-login {
+            background: transparent;
+            border: 1px solid #6abf40;
+            color: #6abf40;
+            transition: all 0.3s;
+        }
+
+        .btn-login:hover {
+            background: rgba(106, 191, 64, 0.15);
+            box-shadow: 0 0 10px rgba(106, 191, 64, 0.3);
+        }
+
+        .btn-signup {
+            background: linear-gradient(135deg, #6abf40, #4a9a2e);
+            color: #fff;
+            transition: all 0.3s;
+        }
+
+        .btn-signup:hover {
+            background: linear-gradient(135deg, #7dd956, #5ab83a);
+            box-shadow: 0 0 12px rgba(106, 191, 64, 0.5);
+        }
+
+        .btn-anon {
+            background: linear-gradient(135deg, #6abf40, #4a9a2e);
+            color: #fff;
+            transition: all 0.3s;
+        }
+
+        .btn-anon:hover {
+            background: linear-gradient(135deg, #7dd956, #5ab83a);
+            box-shadow: 0 0 12px rgba(106, 191, 64, 0.5);
+        }
+
+        /* ==================== HEADER / NAV ==================== */
+        .header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px calc((100% - 1300px) / 2);
+            background: #000;
+            border-top: 1px solid #6abf40;
+            border-bottom: 1px solid #6abf40;
+            box-shadow: 0 1px 8px rgba(106, 191, 64, 0.5);
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 28px;
+            font-weight: 900;
+            color: #fff;
+        }
+
+        .logo .cc-icon {
+            width: 50px;
+            height: 50px;
+            background: linear-gradient(135deg, #6abf40, #3d8a25);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 22px;
+            font-weight: 900;
+            color: #fff;
+        }
+
+        .logo span {
+            font-size: 12px;
+            letter-spacing: 4px;
+            display: block;
+            color: #aaa;
+        }
+
+        .nav {
+            display: flex;
+            gap: 25px;
+        }
+
+        .nav a {
+            color: #fff;
+            font-size: 15px;
+            font-weight: 700;
+            transition: color 0.2s;
+            white-space: nowrap;
+        }
+
+        .nav a:hover {
+            color: #6abf40;
+            text-shadow: 0 0 8px rgba(106, 191, 64, 0.4);
+        }
+
+        .nav a::after {
+            content: '';
+            display: block;
+            width: 0;
+            height: 2px;
+            background: #6abf40;
+            transition: width 0.3s;
+            box-shadow: 0 0 6px rgba(106, 191, 64, 0.5);
+        }
+
+        .nav a:hover::after {
+            width: 100%;
+        }
+
+        /* ==================== BANNER ==================== */
+        .banner {
+            width: 100%;
+            border-bottom: 1px solid #6abf40;
+            box-shadow: 0 1px 8px rgba(106, 191, 64, 0.5);
+        }
+
+        .banner img {
+            width: 100%;
+            display: block;
+        }
+
+        /* ==================== GAME CATEGORY TABS ==================== */
+        .category-tabs {
+            display: flex;
+            justify-content: center;
+            gap: 12px;
+            padding: 20px calc((100% - 1300px) / 2);
+            background: rgba(30, 30, 30, 0.85);
+        }
+
+        .category-tab {
+            flex: 1;
+            max-width: 100%;
+            text-align: center;
+            padding: 12px 40px;
+            cursor: pointer;
+            transition: all 0.4s ease;
+            border: 1px solid #444;
+            border-radius: 40px;
+            background: linear-gradient(180deg, #3a3a3a 0%, #252525 100%);
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.5), 0 2px 6px rgba(0,0,0,0.3);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .category-tab::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255,255,255,0.05) 0%, transparent 60%);
+            opacity: 0;
+            transition: opacity 0.4s;
+        }
+
+        .category-tab:hover {
+            background: linear-gradient(180deg, #4a4a4a 0%, #333 100%);
+            border-color: #6abf40;
+            box-shadow: 0 0 15px rgba(106, 191, 64, 0.2), inset 0 2px 4px rgba(0,0,0,0.4);
+            transform: translateY(-2px);
+        }
+
+        .category-tab:hover::before {
+            opacity: 1;
+        }
+
+        .category-tab.active {
+            background: linear-gradient(180deg, #7dd956 0%, #4a9a2e 50%, #3a7a20 100%);
+            border-color: #8ae65a;
+            box-shadow: 0 0 25px rgba(106, 191, 64, 0.5), 0 4px 15px rgba(106, 191, 64, 0.3), inset 0 1px 1px rgba(255,255,255,0.3);
+            transform: translateY(-2px);
+        }
+
+        .category-tab h3 {
+            font-size: 26px;
+            font-weight: 700;
+            margin-bottom: 2px;
+            color: #ddd;
+            transition: color 0.3s, text-shadow 0.3s;
+        }
+
+        .category-tab:hover h3 {
+            color: #fff;
+        }
+
+        .category-tab.active h3 {
+            color: #f5e642;
+            text-shadow: 0 0 10px rgba(245, 230, 66, 0.5);
+        }
+
+        .category-tab p {
+            font-size: 12px;
+            color: #777;
+            letter-spacing: 2px;
+            transition: color 0.3s;
+        }
+
+        .category-tab:hover p {
+            color: #aaa;
+        }
+
+        .category-tab.active p {
+            color: rgba(255,255,255,0.9);
+        }
+
+        /* ==================== GAME CARDS ==================== */
+        .game-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            gap: 15px;
+            padding: 20px calc((100% - 1300px) / 2);
+            background: linear-gradient(180deg, rgba(30,30,30,0.5), rgba(17,17,17,1));
+        }
+
+        .game-card {
+            width: 100%;
+            border-radius: 10px;
+            overflow: hidden;
+            border: 1px solid rgba(106, 191, 64, 0.4);
+            background: #1a1a1a;
+            cursor: pointer;
+            transition: all 0.4s ease;
+        }
+
+        .game-card:hover {
+            transform: translateY(-8px) scale(1.02);
+            border-color: #6abf40;
+            box-shadow: 0 10px 30px rgba(106, 191, 64, 0.3), 0 0 15px rgba(106, 191, 64, 0.2);
+        }
+
+        .game-card:hover .game-card-img {
+            filter: brightness(1.1);
+        }
+
+        .game-card-img {
+            width: 100%;
+            height: 200px;
+            display: flex;
+            align-items: flex-end;
+            justify-content: center;
+            padding: 0;
+            position: relative;
+            overflow: hidden;
+            background-size: cover;
+            background-position: center top;
+        }
+
+        .game-card-img .overlay {
+            width: 100%;
+            padding: 12px 10px 8px;
+            background: linear-gradient(transparent, rgba(0,0,0,0.85));
+            text-align: center;
+        }
+
+        .game-card-img .overlay-logo {
+            font-size: 10px;
+            color: #aaa;
+            margin-bottom: 2px;
+            letter-spacing: 1px;
+        }
+
+        .game-card-img .overlay-text {
+            font-size: 22px;
+            font-weight: 900;
+            color: #fff;
+            text-shadow: 0 2px 8px rgba(0,0,0,0.8);
+        }
+
+        .game-card-img .overlay-sub {
+            font-size: 10px;
+            color: #aaa;
+            letter-spacing: 1px;
+            padding: 2px 12px;
+            border-top: 1px solid rgba(255,255,255,0.2);
+            display: inline-block;
+            margin-top: 4px;
+        }
+
+        .game-card-info {
+            padding: 10px;
+            text-align: center;
+            background: #1a1a1a;
+            border-top: 1px solid #333;
+        }
+
+        .game-card-info h4 {
+            font-size: 18px;
+            font-weight: 700;
+            color: #fff;
+        }
+
+        .game-card-info p {
+            font-size: 13px;
+            color: #888;
+        }
+
+        /* ==================== INFO SECTION (이벤트 + 입출금) ==================== */
+        .info-section {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 20px;
+            padding: 40px calc((100% - 1300px) / 2);
+        }
+
+        .info-box {
+            background: #1a1a1a;
+            border: 1px solid #6abf40;
+            box-shadow: 0 0 8px rgba(106, 191, 64, 0.3);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .info-box-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 14px 18px;
+            border-bottom: 1px solid #6abf40;
+            box-shadow: 0 1px 8px rgba(106, 191, 64, 0.3);
+            font-size: 20px;
+            font-weight: 700;
+        }
+
+        .info-box-header .icon {
+            font-size: 18px;
+        }
+
+        .info-box-header.event {
+            color: #f5e642;
+        }
+
+        .info-box-header.deposit {
+            color: #00bfff;
+        }
+
+        .info-box-header.withdraw {
+            color: #ff6b9d;
+        }
+
+        /* 이벤트 리스트 */
+        .event-list {
+            padding: 8px 0;
+        }
+
+        .event-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 0 18px;
+            height: 48px;
+            cursor: pointer;
+            transition: background 0.2s;
+            border-bottom: 1px solid rgba(106, 191, 64, 0.3);
+        }
+
+        .event-item:last-child {
+            border-bottom: none;
+        }
+
+        .event-item:hover {
+            background: rgba(106, 191, 64, 0.08);
+        }
+
+        .event-tag {
+            background: #f5e642;
+            color: #000;
+            font-size: 14px;
+            font-weight: 700;
+            padding: 2px 8px;
+            border-radius: 3px;
+            white-space: nowrap;
+        }
+
+        .event-item span {
+            font-size: 17px;
+            color: #ccc;
+        }
+
+        /* 입출금 테이블 */
+        .transaction-list {
+            padding: 8px 0;
+        }
+
+        .transaction-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            padding: 0 18px;
+            height: 48px;
+            align-items: center;
+            font-size: 16px;
+            border-bottom: 1px solid rgba(106, 191, 64, 0.3);
+        }
+
+        .transaction-row:last-child {
+            border-bottom: none;
+        }
+
+        .transaction-row .user {
+            color: #ccc;
+        }
+
+        .transaction-row .amount {
+            color: #f5e642;
+            text-align: center;
+            font-weight: 600;
+        }
+
+        .transaction-row .date {
+            color: #666;
+            text-align: right;
+            font-size: 12px;
+        }
+
+        /* ==================== PROGRESSIVE JACKPOT ==================== */
+        .jackpot-section {
+            margin: 0 auto 40px;
+            max-width: 1300px;
+            border-radius: 12px;
+            overflow: hidden;
+            background: linear-gradient(135deg, #1a1000, #0d0800, #1a1000);
+            border: 1px solid #6abf40;
+            box-shadow: 0 0 8px rgba(106, 191, 64, 0.3);
+            padding: 40px;
+            text-align: center;
+            position: relative;
+        }
+
+        .jackpot-section h3 {
+            font-size: 18px;
+            font-weight: 700;
+            letter-spacing: 4px;
+            color: #ccc;
+            margin-bottom: 10px;
+        }
+
+        .jackpot-amount {
+            font-size: 72px;
+            font-weight: 900;
+            background: linear-gradient(180deg, #ffd700, #ff8c00, #ffd700);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-shadow: none;
+            line-height: 1;
+        }
+
+        /* ==================== BANNER LINKS (텔레그램 등) ==================== */
+        .banner-links {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 20px;
+            padding: 0 calc((100% - 1300px) / 2) 40px;
+        }
+
+        .banner-link {
+            border-radius: 10px;
+            overflow: hidden;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .banner-link:hover {
+            transform: translateY(-3px);
+        }
+
+        .banner-link img {
+            width: 100%;
+            display: block;
+            border-radius: 10px;
+        }
+
+        /* ==================== PROVIDERS GRID ==================== */
+        .providers-section {
+            padding: 0 calc((100% - 1300px) / 2) 40px;
+        }
+
+        .providers-grid {
+            display: grid;
+            grid-template-columns: repeat(10, 1fr);
+            gap: 2px;
+        }
+
+        .provider-item {
+            background: #1a1a1a;
+            border: 1px solid rgba(106, 191, 64, 0.3);
+            padding: 15px 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 60px;
+            transition: background 0.2s;
+            cursor: pointer;
+        }
+
+        .provider-item:hover {
+            background: #252525;
+            border-color: #6abf40;
+            box-shadow: 0 0 8px rgba(106, 191, 64, 0.3);
+        }
+
+        .provider-item:hover span {
+            color: #6abf40;
+        }
+
+        .provider-item span {
+            font-size: 11px;
+            color: #888;
+            text-align: center;
+            font-weight: 500;
+            letter-spacing: 1px;
+        }
+
+        /* ==================== FOOTER ==================== */
+        .footer {
+            background: #0a0a0a;
+            border-top: 1px solid #6abf40;
+            box-shadow: 0 -1px 8px rgba(106, 191, 64, 0.5);
+            padding: 30px 40px;
+            text-align: center;
+            color: #555;
+            font-size: 12px;
+        }
+
+        /* ==================== RESPONSIVE ==================== */
+        @media (max-width: 1024px) {
+            .info-section {
+                grid-template-columns: 1fr;
+            }
+            .banner-links {
+                grid-template-columns: 1fr;
+            }
+            .providers-grid {
+                grid-template-columns: repeat(5, 1fr);
+            }
+            .nav {
+                gap: 15px;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .header {
+                flex-direction: column;
+                gap: 15px;
+            }
+            .category-tabs {
+                flex-direction: column;
+                padding: 20px;
+                gap: 10px;
+            }
+            .category-tab {
+                max-width: 100%;
+            }
+            .game-cards {
+                flex-direction: column;
+                align-items: center;
+            }
+            .banner-text h1 {
+                font-size: 28px;
+            }
+            .jackpot-amount {
+                font-size: 40px;
+            }
+            .providers-grid {
+                grid-template-columns: repeat(3, 1fr);
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- ===== TOP BAR ===== -->
+    <div class="top-bar">
+        <button class="top-btn btn-login">🔑 로그인</button>
+        <button class="top-btn btn-signup">🔒 회원가입</button>
+        <button class="top-btn btn-anon">🔒 무기명가입</button>
+    </div>
+
+    <!-- ===== HEADER / NAV ===== -->
+    <header class="header">
+        <div class="logo">
+            <img src="cclogo.png" alt="CC CASINO" style="height:60px;">
+        </div>
+        <nav class="nav">
+            <a href="#">라이브카지노</a>
+            <a href="#">슬롯게임</a>
+            <a href="#">롤링챌린지</a>
+            <a href="#">충전신청</a>
+            <a href="#">환전신청</a>
+            <a href="#">출석부</a>
+            <a href="#">공지사항</a>
+            <a href="#">이벤트</a>
+            <a href="#">고객센터</a>
+        </nav>
+    </header>
+
+    <!-- ===== MAIN BANNER ===== -->
+    <section class="banner">
+        <img src="28.png" alt="배너">
+    </section>
+
+    <!-- ===== CATEGORY TABS ===== -->
+    <section class="category-tabs">
+        <div class="category-tab">
+            <h3>라이브카지노</h3>
+            <p>LIVE CASINO</p>
+        </div>
+        <div class="category-tab">
+            <h3>슬롯게임</h3>
+            <p>SLOT GAME</p>
+        </div>
+        <div class="category-tab active">
+            <h3>스포츠</h3>
+            <p>SPORTS</p>
+        </div>
+    </section>
+
+    <!-- ===== GAME CARDS ===== -->
+    <section class="game-cards">
+        <div class="game-card">
+            <div class="game-card-img" style="background-image:url('ca33.png');">
+                <div class="overlay"></div>
+            </div>
+            <div class="game-card-info">
+                <h4>프라그마틱</h4>
+                <p>PragmaticPlay</p>
+            </div>
+        </div>
+        <div class="game-card">
+            <div class="game-card-img" style="background-image:url('ca33.png');">
+                <div class="overlay"></div>
+            </div>
+            <div class="game-card-info">
+                <h4>에볼루션</h4>
+                <p>EVOLUTION</p>
+            </div>
+        </div>
+        <div class="game-card">
+            <div class="game-card-img" style="background-image:url('ca33.png');">
+                <div class="overlay"></div>
+            </div>
+            <div class="game-card-info">
+                <h4>플레이에이스</h4>
+                <p>Playace</p>
+            </div>
+        </div>
+        <div class="game-card">
+            <div class="game-card-img" style="background-image:url('ca33.png');">
+                <div class="overlay"></div>
+            </div>
+            <div class="game-card-info">
+                <h4>WM카지노</h4>
+                <p>WM Live</p>
+            </div>
+        </div>
+        <div class="game-card">
+            <div class="game-card-img" style="background-image:url('ca33.png');">
+                <div class="overlay"></div>
+            </div>
+            <div class="game-card-info">
+                <h4>드림게임</h4>
+                <p>DreamGame</p>
+            </div>
+        </div>
+        <div class="game-card">
+            <div class="game-card-img" style="background-image:url('ca33.png');">
+                <div class="overlay"></div>
+            </div>
+            <div class="game-card-info">
+                <h4>벳게임즈</h4>
+                <p>Betgames</p>
+            </div>
+        </div>
+        <div class="game-card">
+            <div class="game-card-img" style="background-image:url('ca33.png');">
+                <div class="overlay"></div>
+            </div>
+            <div class="game-card-info">
+                <h4>스카이윈드</h4>
+                <p>Skywind</p>
+            </div>
+        </div>
+        <div class="game-card">
+            <div class="game-card-img" style="background-image:url('ca33.png');">
+                <div class="overlay"></div>
+            </div>
+            <div class="game-card-info">
+                <h4>타이산</h4>
+                <p>Taishan</p>
+            </div>
+        </div>
+        <div class="game-card">
+            <div class="game-card-img" style="background-image:url('ca33.png');">
+                <div class="overlay"></div>
+            </div>
+            <div class="game-card-info">
+                <h4>마이크로게이밍</h4>
+                <p>Microgaming</p>
+            </div>
+        </div>
+        <div class="game-card">
+            <div class="game-card-img" style="background-image:url('ca33.png');">
+                <div class="overlay"></div>
+            </div>
+            <div class="game-card-info">
+                <h4>보타(TG/PD)</h4>
+                <p>BOTA</p>
+            </div>
+        </div>
+        <div class="game-card">
+            <div class="game-card-img" style="background-image:url('ca33.png');">
+                <div class="overlay"></div>
+            </div>
+            <div class="game-card-info">
+                <h4>아시아게이밍</h4>
+                <p>AsiaGaming</p>
+            </div>
+        </div>
+        <div class="game-card">
+            <div class="game-card-img" style="background-image:url('ca33.png');">
+                <div class="overlay"></div>
+            </div>
+            <div class="game-card-info">
+                <h4>올벳</h4>
+                <p>Allbet</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- ===== INFO SECTION (이벤트 + 입출금현황) ===== -->
+    <section class="info-section">
+        <!-- 이벤트 -->
+        <div class="info-box">
+            <div class="info-box-header event">
+                <span class="icon">🎪</span> 이벤트
+            </div>
+            <div class="event-list">
+                <div class="event-item">
+                    <span class="event-tag">이벤트</span>
+                    <span>·복귀 이벤트</span>
+                </div>
+                <div class="event-item">
+                    <span class="event-tag">이벤트</span>
+                    <span>·스포츠 미적중 이벤트</span>
+                </div>
+                <div class="event-item">
+                    <span class="event-tag">이벤트</span>
+                    <span>·쿠폰 에어드랍 이벤트</span>
+                </div>
+                <div class="event-item">
+                    <span class="event-tag">이벤트</span>
+                    <span>·스포츠 충전 이벤트</span>
+                </div>
+                <div class="event-item">
+                    <span class="event-tag">이벤트</span>
+                    <span>·카지노 충전 이벤트</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- 실시간입금현황 -->
+        <div class="info-box">
+            <div class="info-box-header deposit">
+                <span class="icon">💰</span> 실시간입금현황
+            </div>
+            <div class="transaction-list">
+                <div class="transaction-row">
+                    <span class="user">se***</span>
+                    <span class="amount">50,000원</span>
+                    <span class="date">2026-03-15</span>
+                </div>
+                <div class="transaction-row">
+                    <span class="user">ba***</span>
+                    <span class="amount">300,000원</span>
+                    <span class="date">2026-03-15</span>
+                </div>
+                <div class="transaction-row">
+                    <span class="user">x2***</span>
+                    <span class="amount">300,000원</span>
+                    <span class="date">2026-03-15</span>
+                </div>
+                <div class="transaction-row">
+                    <span class="user">m***</span>
+                    <span class="amount">50,000원</span>
+                    <span class="date">2026-03-15</span>
+                </div>
+                <div class="transaction-row">
+                    <span class="user">x2***</span>
+                    <span class="amount">200,000원</span>
+                    <span class="date">2026-03-15</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- 실시간출금현황 -->
+        <div class="info-box">
+            <div class="info-box-header withdraw">
+                <span class="icon">💰</span> 실시간출금현황
+            </div>
+            <div class="transaction-list">
+                <div class="transaction-row">
+                    <span class="user">m***</span>
+                    <span class="amount">360,000원</span>
+                    <span class="date">2026-03-15</span>
+                </div>
+                <div class="transaction-row">
+                    <span class="user">x2***</span>
+                    <span class="amount" style="color:#ff69b4;">2,500,000원</span>
+                    <span class="date">2026-03-15</span>
+                </div>
+                <div class="transaction-row">
+                    <span class="user">m***</span>
+                    <span class="amount">470,000원</span>
+                    <span class="date">2026-03-15</span>
+                </div>
+                <div class="transaction-row">
+                    <span class="user">ak***</span>
+                    <span class="amount" style="color:#ff69b4;">4,100,000원</span>
+                    <span class="date">2026-03-15</span>
+                </div>
+                <div class="transaction-row">
+                    <span class="user">m***</span>
+                    <span class="amount">750,000원</span>
+                    <span class="date">2026-03-15</span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ===== PROGRESSIVE JACKPOT ===== -->
+    <section class="jackpot-section">
+        <h3>PROGRESSIVE JACKPOT</h3>
+        <div class="jackpot-amount" id="jackpot">2,773,582,502</div>
+    </section>
+
+    <!-- ===== BANNER LINKS ===== -->
+    <section class="banner-links">
+        <a href="#" class="banner-link"><img src="하나.jpg" alt="공식 텔레그램"></a>
+        <a href="#" class="banner-link"><img src="둘.jpg" alt="공식 채널"></a>
+        <a href="#" class="banner-link"><img src="셋.jpg" alt="평생도메인"></a>
+    </section>
+
+    <!-- ===== GAME PROVIDERS ===== -->
+    <section class="providers-section">
+        <div class="providers-grid">
+            <div class="provider-item"><span>PRAGMATIC PLAY</span></div>
+            <div class="provider-item"><span>CQ9 GAMING</span></div>
+            <div class="provider-item"><span>HABANERO</span></div>
+            <div class="provider-item"><span>AG Asia Gaming</span></div>
+            <div class="provider-item"><span>Booongo</span></div>
+            <div class="provider-item"><span>STARGAMES</span></div>
+            <div class="provider-item"><span>RTG SLOTS</span></div>
+            <div class="provider-item"><span>DREAMTECH</span></div>
+            <div class="provider-item"><span>Play'n GO</span></div>
+            <div class="provider-item"><span>DREAMGAME</span></div>
+            <div class="provider-item"><span>PLAYSTAR</span></div>
+            <div class="provider-item"><span>GAMEART</span></div>
+            <div class="provider-item"><span>TOPTREND</span></div>
+            <div class="provider-item"><span>Genesis</span></div>
+            <div class="provider-item"><span>ORIENT</span></div>
+            <div class="provider-item"><span>PLAYSON</span></div>
+            <div class="provider-item"><span>BGAMING</span></div>
+            <div class="provider-item"><span>BETSOFT</span></div>
+            <div class="provider-item"><span>EVOPLAY</span></div>
+            <div class="provider-item"><span>AFB CASINO</span></div>
+            <div class="provider-item"><span>GG</span></div>
+            <div class="provider-item"><span>Microgaming</span></div>
+            <div class="provider-item"><span>ALLBET</span></div>
+            <div class="provider-item"><span>TGAME</span></div>
+            <div class="provider-item"><span>WM CASINO</span></div>
+            <div class="provider-item"><span>SA GAMING</span></div>
+            <div class="provider-item"><span>BBIN</span></div>
+            <div class="provider-item"><span>SEXYBCRT</span></div>
+            <div class="provider-item"><span>Evolution</span></div>
+            <div class="provider-item"><span>VIVO GAMING</span></div>
+        </div>
+    </section>
+
+    <!-- ===== FOOTER ===== -->
+    <footer class="footer">
+        <p>&copy; CC CASINO. All Rights Reserved.</p>
+    </footer>
+
+    <script>
+        // ===== 잭팟 숫자 애니메이션 =====
+        const jackpotEl = document.getElementById('jackpot');
+        let jackpotValue = 2773582502;
+        setInterval(() => {
+            jackpotValue += Math.floor(Math.random() * 100) + 1;
+            jackpotEl.textContent = jackpotValue.toLocaleString();
+        }, 100);
+
+        // ===== 카테고리 탭 클릭 =====
+        document.querySelectorAll('.category-tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                document.querySelectorAll('.category-tab').forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+            });
+        });
+
+        // ===== 스크롤 시 요소 페이드인 =====
+        const observerOptions = { threshold: 0.1 };
+        const fadeObserver = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.style.opacity = '1';
+                    entry.target.style.transform = 'translateY(0)';
+                }
+            });
+        }, observerOptions);
+
+        document.querySelectorAll('.game-card, .info-box, .jackpot-section, .banner-link, .provider-item').forEach(el => {
+            el.style.opacity = '0';
+            el.style.transform = 'translateY(30px)';
+            el.style.transition = 'opacity 0.6s ease, transform 0.6s ease, box-shadow 0.4s ease, border-color 0.4s ease';
+            fadeObserver.observe(el);
+        });
+
+        // ===== 입출금 데이터 자동 롤링 =====
+        const names = ['se***','ba***','x2***','m***','ak***','jo***','ki***','pa***','ch***','lu***'];
+        const amounts = [50000,100000,150000,200000,300000,500000,750000,1000000,2000000,3500000,5000000];
+
+        function rollTransaction(listEl) {
+            const rows = listEl.querySelectorAll('.transaction-row');
+            const lastRow = rows[rows.length - 1];
+            lastRow.style.transition = 'opacity 0.4s, transform 0.4s';
+            lastRow.style.opacity = '0';
+            lastRow.style.transform = 'translateY(10px)';
+
+            setTimeout(() => {
+                const newRow = document.createElement('div');
+                newRow.className = 'transaction-row';
+                const name = names[Math.floor(Math.random() * names.length)];
+                const amount = amounts[Math.floor(Math.random() * amounts.length)];
+                const isHighAmount = amount >= 2000000;
+                newRow.innerHTML = `
+                    <span class="user">${name}</span>
+                    <span class="amount" ${isHighAmount ? 'style="color:#ff69b4;"' : ''}>${amount.toLocaleString()}원</span>
+                    <span class="date">2026-03-15</span>
+                `;
+                newRow.style.opacity = '0';
+                newRow.style.transform = 'translateY(-10px)';
+                listEl.insertBefore(newRow, listEl.firstChild);
+
+                requestAnimationFrame(() => {
+                    newRow.style.transition = 'opacity 0.4s, transform 0.4s';
+                    newRow.style.opacity = '1';
+                    newRow.style.transform = 'translateY(0)';
+                });
+
+                if (listEl.children.length > 5) {
+                    listEl.removeChild(listEl.lastChild);
+                }
+            }, 400);
+        }
+
+        document.querySelectorAll('.transaction-list').forEach(list => {
+            setInterval(() => rollTransaction(list), 3000 + Math.random() * 2000);
+        });
+
+        // ===== 네비게이션 호버 효과음 (시각적 피드백) =====
+        document.querySelectorAll('.nav a').forEach(link => {
+            link.addEventListener('mouseenter', () => {
+                link.style.transition = 'all 0.2s ease';
+            });
+        });
+
+        // ===== 게임카드 순차 등장 딜레이 =====
+        document.querySelectorAll('.game-card').forEach((card, i) => {
+            card.style.transitionDelay = `${i * 0.08}s`;
+        });
+
+        // ===== 프로바이더 순차 등장 딜레이 =====
+        document.querySelectorAll('.provider-item').forEach((item, i) => {
+            item.style.transitionDelay = `${i * 0.03}s`;
+        });
+    </script>
+
+</body>
+</html>
