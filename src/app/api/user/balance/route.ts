@@ -38,13 +38,15 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // 3. Also get balance from HonorLink
+    // 3. Also get balance from HonorLink (with timeout)
     let honorlinkBalance = 0;
     try {
-      const hlUser = await honorlink.getUser(member.username);
+      const hlPromise = honorlink.getUser(member.username);
+      const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error("timeout")), 3000));
+      const hlUser = await Promise.race([hlPromise, timeoutPromise]) as any;
       honorlinkBalance = Number(hlUser.data?.balance) || 0;
     } catch {
-      // User may not exist on HonorLink yet
+      // User may not exist on HonorLink yet or timeout
     }
 
     // 4. Return both balances
