@@ -1,13 +1,22 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-server";
-import { transactionCache } from "@/lib/transaction-cache";
 
 export const dynamic = "force-dynamic";
 
 const levelLabels: Record<string, string> = {
   admin: "관리자", head: "본사", sub_head: "부본", distributor: "총판", store: "매장",
 };
+
+/**
+ * Convert a KST date string (YYYY-MM-DD) to UTC ISO range for DB queries.
+ * KST is UTC+9, so KST 00:00 = previous day 15:00 UTC.
+ */
+function kstDateRangeToUtc(startKst: string, endKst: string) {
+  const startUtc = new Date(startKst + "T00:00:00+09:00").toISOString();
+  const endUtc = new Date(endKst + "T23:59:59+09:00").toISOString();
+  return { startUtc, endUtc };
+}
 
 export async function GET(request: NextRequest) {
   try {
@@ -41,43 +50,52 @@ export async function GET(request: NextRequest) {
     });
 
     // 2. 회원 → 소속 매장 매핑
-    const { data: members } = await supabaseAdmin.from("members").select("username, store_id");
+    const { data: members } = await supabaseAdmin.from("members").select("id, username, store_id");
     const memberStoreMap: Record<string, string> = {};
-    (members || []).forEach((m) => { if (m.store_id) memberStoreMap[m.username] = m.store_id; });
+    const memberIdToUsername: Record<string, string> = {};
+    (members || []).forEach((m) => {
+      if (m.store_id) memberStoreMap[m.username] = m.store_id;
+      memberIdToUsername[m.id] = m.username;
+    });
 
-    // 3. 배팅 데이터 조회 - 캐시 또는 직접 HonorLink 호출
-    let cachedTxs = transactionCache.getByDateRange(startDate, endDate);
+    // 3. 배팅 데이터 조회 - DB에서 읽기
+    const { startUtc, endUtc } = kstDateRangeToUtc(startDate, endDate);
 
-    // 캐시가 비어있으면 직접 HonorLink 호출
-    if (cachedTxs.length === 0) {
-      try {
-        await transactionCache.collect();
-        cachedTxs = transactionCache.getByDateRange(startDate, endDate);
-      } catch {}
-    }
-
-    // bet/win만 필터
-    const gameTxs = cachedTxs.filter((t) => t.type === "bet" || t.type === "win");
+    const [slotRes, casinoRes] = await Promise.all([
+      supabaseAdmin
+        .from("slot_bet_history")
+        .select("member_id, bet_amount, win_amount")
+        .gte("bet_at", startUtc)
+        .lte("bet_at", endUtc),
+      supabaseAdmin
+        .from("casino_bet_history")
+        .select("member_id, bet_amount, win_amount")
+        .gte("bet_at", startUtc)
+        .lte("bet_at", endUtc),
+    ]);
 
     // 4. 유저별 배팅 집계
     const userBetting: Record<string, { slotBet: number; slotWin: number; casinoBet: number; casinoWin: number }> = {};
 
-    gameTxs.forEach((tx) => {
-      const username = tx.username;
-      if (!username) return;
+    for (const row of (slotRes.data || [])) {
+      const username = memberIdToUsername[row.member_id];
+      if (!username) continue;
       if (!userBetting[username]) {
         userBetting[username] = { slotBet: 0, slotWin: 0, casinoBet: 0, casinoWin: 0 };
       }
-      const amount = Math.abs(Number(tx.amount) || 0);
+      userBetting[username].slotBet += Number(row.bet_amount) || 0;
+      userBetting[username].slotWin += Number(row.win_amount) || 0;
+    }
 
-      if (tx.type === "bet") {
-        if (tx.isCasino) userBetting[username].casinoBet += amount;
-        else userBetting[username].slotBet += amount;
-      } else if (tx.type === "win") {
-        if (tx.isCasino) userBetting[username].casinoWin += amount;
-        else userBetting[username].slotWin += amount;
+    for (const row of (casinoRes.data || [])) {
+      const username = memberIdToUsername[row.member_id];
+      if (!username) continue;
+      if (!userBetting[username]) {
+        userBetting[username] = { slotBet: 0, slotWin: 0, casinoBet: 0, casinoWin: 0 };
       }
-    });
+      userBetting[username].casinoBet += Number(row.bet_amount) || 0;
+      userBetting[username].casinoWin += Number(row.win_amount) || 0;
+    }
 
     // 5. 파트너별 하부 회원 집계
     const getDescendants = (pid: string): Set<string> => {

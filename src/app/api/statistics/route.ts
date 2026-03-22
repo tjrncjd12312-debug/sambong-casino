@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-server";
-import { transactionCache } from "@/lib/transaction-cache";
 
 export const dynamic = "force-dynamic";
 
@@ -24,8 +23,71 @@ const getDescendantsHelper = (partnerId: string, childrenMap: Map<string, string
 };
 
 /**
+ * Convert a KST date string to UTC ISO for DB queries.
+ */
+function kstDateRangeToUtc(startKst: string, endKst: string) {
+  const startUtc = new Date(startKst + "T00:00:00+09:00").toISOString();
+  const endUtc = new Date(endKst + "T23:59:59+09:00").toISOString();
+  return { startUtc, endUtc };
+}
+
+/**
+ * Fetch all bet records from both slot and casino tables for a date range.
+ * Returns a unified array with a `gameType` field.
+ */
+async function fetchBetsFromDb(startUtc: string, endUtc: string) {
+  // Fetch member mapping for username lookup
+  const { data: members } = await supabaseAdmin.from("members").select("id, username");
+  const memberIdToUsername: Record<string, string> = {};
+  (members || []).forEach((m) => { memberIdToUsername[m.id] = m.username; });
+
+  const [slotRes, casinoRes] = await Promise.all([
+    supabaseAdmin
+      .from("slot_bet_history")
+      .select("member_id, provider_name, game_name, bet_amount, win_amount, bet_at")
+      .gte("bet_at", startUtc)
+      .lte("bet_at", endUtc),
+    supabaseAdmin
+      .from("casino_bet_history")
+      .select("member_id, provider_name, game_name, bet_amount, win_amount, bet_at")
+      .gte("bet_at", startUtc)
+      .lte("bet_at", endUtc),
+  ]);
+
+  const allBets: any[] = [];
+
+  for (const row of (slotRes.data || [])) {
+    const username = memberIdToUsername[row.member_id] || "Unknown";
+    allBets.push({
+      bet_amount: Number(row.bet_amount) || 0,
+      win_amount: Number(row.win_amount) || 0,
+      created_at: row.bet_at,
+      username,
+      vendor: row.provider_name || "Unknown",
+      game_name: row.game_name || "",
+      gameType: "슬롯",
+    });
+  }
+
+  for (const row of (casinoRes.data || [])) {
+    const username = memberIdToUsername[row.member_id] || "Unknown";
+    allBets.push({
+      bet_amount: Number(row.bet_amount) || 0,
+      win_amount: Number(row.win_amount) || 0,
+      created_at: row.bet_at,
+      username,
+      vendor: row.provider_name || "Unknown",
+      game_name: row.game_name || "",
+      gameType: "카지노",
+    });
+  }
+
+  return allBets;
+}
+
+/**
  * GET /api/statistics
- * Now reads from the server-side transaction cache instead of calling HonorLink directly.
+ * Reads from DB (slot_bet_history, casino_bet_history) for reliable data.
  *
  * Query params:
  *   type: betting | game | user | head | sub-head | distributor | store
@@ -46,6 +108,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    const { startUtc, endUtc } = kstDateRangeToUtc(startDate, endDate);
     const startDatetime = `${startDate}T00:00:00`;
     const endDatetime = `${endDate}T23:59:59`;
 
@@ -81,29 +144,8 @@ export async function GET(request: NextRequest) {
         .lte("created_at", endDatetime),
     ]);
 
-    // 배팅 데이터 조회 - 캐시 또는 직접 수집
-    let cachedTxs = transactionCache.getByDateRange(startDate, endDate);
-    if (cachedTxs.length === 0) {
-      try {
-        await transactionCache.collect();
-        cachedTxs = transactionCache.getByDateRange(startDate, endDate);
-      } catch {}
-    }
-
-    const gameTxs = cachedTxs.filter((t) => t.type === "bet" || t.type === "win");
-    const allBets = gameTxs.map((tx) => {
-      const amount = Math.abs(Number(tx.amount) || 0);
-
-      return {
-        bet_amount: tx.type === "bet" ? amount : 0,
-        win_amount: tx.type === "win" ? amount : 0,
-        created_at: tx.kstTime, // already in KST
-        username: tx.username,
-        vendor: tx.gameVendor,
-        game_name: tx.gameTitle,
-        gameType: tx.isCasino ? "카지노" : "슬롯",
-      };
-    });
+    // 배팅 데이터 조회 - DB에서 읽기
+    const allBets = await fetchBetsFromDb(startUtc, endUtc);
 
     if (type === "betting") {
       return handleBettingStats(allBets, depositRes.data || [], withdrawRes.data || [], giveRes.data || [], takeRes.data || [], startDate, endDate);
@@ -149,7 +191,14 @@ function handleBettingStats(
   }
 
   const getDateKey = (created_at: string) => {
-    try { return created_at.substring(0, 10); } catch { return ""; }
+    try {
+      // Convert UTC bet_at to KST date key
+      const date = new Date(created_at);
+      if (isNaN(date.getTime())) return created_at.substring(0, 10);
+      const kstMs = date.getTime() + 9 * 60 * 60 * 1000;
+      const kstDate = new Date(kstMs);
+      return kstDate.toISOString().split("T")[0];
+    } catch { return ""; }
   };
 
   for (const d of deposits) {

@@ -11,6 +11,7 @@
  */
 
 import { honorlink } from "@/lib/honorlink";
+import { supabaseAdmin } from "@/lib/supabase-server";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -136,6 +137,151 @@ function normalizeTx(tx: any): CachedTransaction | null {
   };
 }
 
+// ── DB Persistence ───────────────────────────────────────────────────
+
+/** Cache username → member row to avoid repeated DB lookups */
+const memberCache = new Map<string, { id: string; store_id: string | null }>();
+let memberCacheLastRefresh = 0;
+const MEMBER_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
+async function refreshMemberCache(): Promise<void> {
+  const now = Date.now();
+  if (now - memberCacheLastRefresh < MEMBER_CACHE_TTL && memberCache.size > 0) return;
+  try {
+    const { data } = await supabaseAdmin.from("members").select("id, username, store_id");
+    if (data) {
+      memberCache.clear();
+      for (const m of data) {
+        memberCache.set(m.username, { id: m.id, store_id: m.store_id });
+      }
+      memberCacheLastRefresh = now;
+    }
+  } catch (err: any) {
+    console.error("[TransactionCache] refreshMemberCache error:", err.message);
+  }
+}
+
+/**
+ * Save collected transactions to slot_bet_history / casino_bet_history.
+ * Runs asynchronously — does not block the collect() caller.
+ */
+async function saveTxsToDb(txs: CachedTransaction[]): Promise<void> {
+  if (txs.length === 0) return;
+
+  try {
+    await refreshMemberCache();
+
+    const slotRows: any[] = [];
+    const casinoRows: any[] = [];
+
+    // Collect win transactions separately so we can update matching bets
+    const winTxs: CachedTransaction[] = [];
+
+    for (const tx of txs) {
+      if (tx.type !== "bet" && tx.type !== "win") continue;
+      if (!tx.gameRound) continue; // need round_id for upsert
+
+      const member = memberCache.get(tx.username);
+      if (!member) continue; // unknown member, skip
+
+      if (tx.type === "win") {
+        winTxs.push(tx);
+        continue;
+      }
+
+      // bet transaction
+      const row: any = {
+        member_id: member.id,
+        store_id: member.store_id,
+        provider_name: tx.gameVendor,
+        game_id: tx.gameId,
+        game_name: tx.gameTitle,
+        round_id: tx.gameRound,
+        bet_amount: Math.abs(tx.amount),
+        win_amount: 0,
+        rolling_amount: 0,
+        is_rolling_processed: false,
+        is_public_bet: true,
+        bet_at: tx.processed_at || tx.created_at,
+      };
+
+      if (tx.isCasino) {
+        casinoRows.push(row);
+      } else {
+        slotRows.push(row);
+      }
+    }
+
+    // Batch upsert bet rows (slot)
+    if (slotRows.length > 0) {
+      for (let i = 0; i < slotRows.length; i += 500) {
+        const batch = slotRows.slice(i, i + 500);
+        const { error } = await supabaseAdmin
+          .from("slot_bet_history")
+          .upsert(batch, { onConflict: "round_id" });
+        if (error) console.error("[TransactionCache] slot upsert error:", error.message);
+      }
+    }
+
+    // Batch upsert bet rows (casino)
+    if (casinoRows.length > 0) {
+      for (let i = 0; i < casinoRows.length; i += 500) {
+        const batch = casinoRows.slice(i, i + 500);
+        const { error } = await supabaseAdmin
+          .from("casino_bet_history")
+          .upsert(batch, { onConflict: "round_id" });
+        if (error) console.error("[TransactionCache] casino upsert error:", error.message);
+      }
+    }
+
+    // Process win transactions: update existing bet records' win_amount
+    for (const win of winTxs) {
+      const winAmount = Math.abs(win.amount);
+      const table = win.isCasino ? "casino_bet_history" : "slot_bet_history";
+
+      // Try to update the matching bet row by round_id
+      const { data: updated, error } = await supabaseAdmin
+        .from(table)
+        .update({ win_amount: winAmount })
+        .eq("round_id", win.gameRound)
+        .select("id");
+
+      if (error) {
+        console.error(`[TransactionCache] win update error (${table}):`, error.message);
+      }
+
+      // If no matching bet exists, insert a new row with win_amount
+      if (!updated || updated.length === 0) {
+        const member = memberCache.get(win.username);
+        if (member) {
+          const row: any = {
+            member_id: member.id,
+            store_id: member.store_id,
+            provider_name: win.gameVendor,
+            game_id: win.gameId,
+            game_name: win.gameTitle,
+            round_id: win.gameRound,
+            bet_amount: 0,
+            win_amount: winAmount,
+            rolling_amount: 0,
+            is_rolling_processed: false,
+            is_public_bet: true,
+            bet_at: win.processed_at || win.created_at,
+          };
+          const { error: insertErr } = await supabaseAdmin
+            .from(table)
+            .upsert([row], { onConflict: "round_id" });
+          if (insertErr) console.error(`[TransactionCache] win insert error (${table}):`, insertErr.message);
+        }
+      }
+    }
+
+    console.log(`[TransactionCache] DB save: ${slotRows.length} slot bets, ${casinoRows.length} casino bets, ${winTxs.length} wins`);
+  } catch (err: any) {
+    console.error("[TransactionCache] saveTxsToDb error:", err.message);
+  }
+}
+
 // ── Singleton Cache ────────────────────────────────────────────────────
 
 class TransactionCacheImpl {
@@ -221,6 +367,16 @@ class TransactionCacheImpl {
 
       this.lastCollectTime = Date.now();
       console.log(`[TransactionCache] Collected: ${rawTxs.length} raw, ${added} new, ${this.transactions.size} total`);
+
+      // Async save to DB - don't block the collect() return
+      const allNormalized: CachedTransaction[] = [];
+      for (const raw of rawTxs) {
+        const cached = normalizeTx(raw);
+        if (cached) allNormalized.push(cached);
+      }
+      saveTxsToDb(allNormalized).catch((err) => {
+        console.error("[TransactionCache] async DB save failed:", err.message);
+      });
     } catch (err: any) {
       console.error("[TransactionCache] collect error:", err.message);
     } finally {

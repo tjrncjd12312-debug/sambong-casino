@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { transactionCache, utcToKst } from "@/lib/transaction-cache";
+import { transactionCache, utcToKst, CachedTransaction } from "@/lib/transaction-cache";
 import { supabaseAdmin } from "@/lib/supabase-server";
 
 export const dynamic = "force-dynamic";
@@ -7,10 +7,100 @@ export const dynamic = "force-dynamic";
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 /**
+ * Fallback: load records from DB when cache is empty.
+ * Returns data shaped like CachedTransaction[] for compatibility.
+ */
+async function loadFromDb(startKst: string, endKst: string): Promise<CachedTransaction[]> {
+  const startUtc = new Date((startKst.includes(" ") ? startKst : startKst + " 00:00:00").replace(" ", "T") + "+09:00").toISOString();
+  const endUtc = new Date((endKst.includes(" ") ? endKst : endKst + " 23:59:59").replace(" ", "T") + "+09:00").toISOString();
+
+  // Fetch member mapping
+  const { data: members } = await supabaseAdmin.from("members").select("id, username");
+  const memberIdToUsername: Record<string, string> = {};
+  (members || []).forEach((m) => { memberIdToUsername[m.id] = m.username; });
+
+  const [slotRes, casinoRes] = await Promise.all([
+    supabaseAdmin
+      .from("slot_bet_history")
+      .select("id, member_id, provider_name, game_id, game_name, round_id, bet_amount, win_amount, bet_at")
+      .gte("bet_at", startUtc)
+      .lte("bet_at", endUtc)
+      .order("bet_at", { ascending: false })
+      .limit(1000),
+    supabaseAdmin
+      .from("casino_bet_history")
+      .select("id, member_id, provider_name, game_id, game_name, round_id, bet_amount, win_amount, bet_at")
+      .gte("bet_at", startUtc)
+      .lte("bet_at", endUtc)
+      .order("bet_at", { ascending: false })
+      .limit(1000),
+  ]);
+
+  const results: CachedTransaction[] = [];
+
+  const mapRow = (row: any, isCasino: boolean) => {
+    const username = memberIdToUsername[row.member_id] || "";
+    const betAt = row.bet_at || "";
+    const kstTime = betAt ? utcToKst(betAt) : "";
+
+    // Create a "bet" entry
+    if (Number(row.bet_amount) > 0) {
+      results.push({
+        id: `db-bet-${row.id}`,
+        type: "bet",
+        amount: -(Number(row.bet_amount)),
+        before: 0,
+        status: "completed",
+        gameId: row.game_id || "",
+        gameType: isCasino ? "casino" : "slot",
+        gameRound: row.round_id || "",
+        gameTitle: row.game_name || "",
+        gameVendor: row.provider_name || "",
+        userId: row.member_id || "",
+        username,
+        processed_at: betAt,
+        created_at: betAt,
+        isCasino,
+        kstTime,
+        _raw: row,
+      });
+    }
+
+    // Create a "win" entry
+    if (Number(row.win_amount) > 0) {
+      results.push({
+        id: `db-win-${row.id}`,
+        type: "win",
+        amount: Number(row.win_amount),
+        before: 0,
+        status: "completed",
+        gameId: row.game_id || "",
+        gameType: isCasino ? "casino" : "slot",
+        gameRound: row.round_id || "",
+        gameTitle: row.game_name || "",
+        gameVendor: row.provider_name || "",
+        userId: row.member_id || "",
+        username,
+        processed_at: betAt,
+        created_at: betAt,
+        isCasino,
+        kstTime,
+        _raw: row,
+      });
+    }
+  };
+
+  for (const row of (slotRes.data || [])) mapRow(row, false);
+  for (const row of (casinoRes.data || [])) mapRow(row, true);
+
+  return results;
+}
+
+/**
  * GET /api/cache/transactions
  *
  * Single endpoint that all pages use to read transaction data.
- * Reads from the server-side transaction cache (no HonorLink call).
+ * Reads from the server-side transaction cache, with DB fallback if cache is empty.
  *
  * Query params:
  *   start    - KST date (YYYY-MM-DD or YYYY-MM-DD HH:mm:ss)
@@ -44,6 +134,12 @@ export async function GET(request: NextRequest) {
 
     // Query cached data
     let transactions = transactionCache.getByDateRange(startKst, endKst);
+
+    // Fallback to DB if cache is empty
+    if (transactions.length === 0) {
+      console.log("[cache/transactions] Cache empty, falling back to DB");
+      transactions = await loadFromDb(startKst, endKst);
+    }
 
     // Filter by type
     if (filterType === "slot") {
