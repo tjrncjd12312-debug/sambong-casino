@@ -146,15 +146,11 @@ export default function UserLayout({
   // Handle logout
   const handleLogout = async () => {
     try {
-      // Clear the member_token cookie by calling a simple endpoint or setting it expired
-      document.cookie = "member_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
-      setUser(null);
-      router.push("/");
-    } catch {
-      // Force clear
-      document.cookie = "member_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
-      setUser(null);
-    }
+      await fetch("/api/auth/logout", { method: "POST" });
+    } catch {}
+    setUser(null);
+    router.push("/");
+    router.refresh();
   };
 
   return (
