@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
@@ -12,6 +12,54 @@ export default function UserLoginPage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [redirecting, setRedirecting] = useState(false);
+  const [checkingAuth, setCheckingAuth] = useState(true);
+
+  // 이미 로그인된 상태면 메인으로 리다이렉트
+  useEffect(() => {
+    const checkAuth = async () => {
+      try {
+        const res = await fetch("/api/user/balance");
+        if (res.ok) {
+          const data = await res.json();
+          if (data.success) {
+            router.replace("/");
+            return;
+          }
+        }
+      } catch {}
+      setCheckingAuth(false);
+    };
+    checkAuth();
+  }, [router]);
+
+  if (checkingAuth) {
+    return (
+      <div className="loading-overlay">
+        <div className="loading-content">
+          <div className="loading-spinner" />
+        </div>
+        <style jsx>{`
+          .loading-overlay {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 60vh;
+          }
+          .loading-spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid rgba(106, 191, 64, 0.2);
+            border-top: 3px solid #6abf40;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+          }
+          @keyframes spin {
+            to { transform: rotate(360deg); }
+          }
+        `}</style>
+      </div>
+    );
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
