@@ -11,6 +11,7 @@ export default function UserLoginPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [redirecting, setRedirecting] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -28,17 +29,64 @@ export default function UserLoginPage() {
 
       if (!res.ok) {
         setError(data.error || "로그인에 실패했습니다.");
+        setLoading(false);
         return;
       }
 
+      setRedirecting(true);
       router.push("/");
       router.refresh();
     } catch {
       setError("서버에 연결할 수 없습니다.");
-    } finally {
       setLoading(false);
     }
   };
+
+  if (redirecting) {
+    return (
+      <div className="loading-overlay">
+        <div className="loading-content">
+          <div className="loading-spinner" />
+          <p className="loading-text">로그인 중...</p>
+        </div>
+        <style jsx>{`
+          .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.9);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 99999;
+          }
+          .loading-content {
+            text-align: center;
+          }
+          .loading-spinner {
+            width: 50px;
+            height: 50px;
+            border: 3px solid rgba(106, 191, 64, 0.2);
+            border-top: 3px solid #6abf40;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin: 0 auto 20px;
+          }
+          .loading-text {
+            color: #6abf40;
+            font-size: 18px;
+            font-weight: 700;
+            font-family: "Noto Sans KR", sans-serif;
+          }
+          @keyframes spin {
+            to { transform: rotate(360deg); }
+          }
+        `}</style>
+      </div>
+    );
+  }
 
   return (
     <div className="login-container">
