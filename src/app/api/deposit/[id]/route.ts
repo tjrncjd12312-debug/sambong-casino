@@ -56,11 +56,11 @@ export async function PATCH(
         );
       }
 
-      const currentBalance = Number(member.balance) || 0;
+      let currentBalance = Number(member.balance) || 0;
       const depositAmount = Number(depositReq.amount) || 0;
       const bonusAmount = Number(depositReq.bonus_amount) || 0;
       const totalAdd = depositAmount + bonusAmount;
-      const newBalance = currentBalance + totalAdd;
+      let newBalance = currentBalance + totalAdd;
 
       // Update member balance with retry on optimistic lock failure
       let balanceUpdated = false;
